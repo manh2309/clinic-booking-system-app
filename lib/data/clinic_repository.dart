@@ -155,4 +155,33 @@ class ClinicRepository {
       body: body,
     );
   }
+
+  Future<List<RescheduleProposal>> reschedules(int appointmentId) async {
+    final data = await client.request(
+      '/appointments/$appointmentId/reschedules',
+    );
+    if (data is! List) {
+      throw const ApiException('Không đọc được đề xuất đổi giờ.');
+    }
+    return data.map((e) => RescheduleProposal.from(objectMap(e))).toList();
+  }
+
+  Future<RescheduleProposal> respondReschedule(
+    int appointmentId,
+    int proposalId,
+    String action,
+  ) async {
+    if (action != 'accept' && action != 'decline') {
+      throw const ApiException('Thao tác không hợp lệ.');
+    }
+    return RescheduleProposal.from(
+      objectMap(
+        await client.request(
+          '/appointments/$appointmentId/reschedules/$proposalId/$action',
+          method: 'PATCH',
+          body: <String, dynamic>{},
+        ),
+      ),
+    );
+  }
 }

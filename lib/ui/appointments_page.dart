@@ -5,6 +5,7 @@ import '../data/clinic_repository.dart';
 import '../data/models.dart';
 import 'common.dart';
 import 'records_page.dart';
+import 'reschedule_page.dart';
 
 class AppointmentsPage extends StatefulWidget {
   const AppointmentsPage({
@@ -123,6 +124,18 @@ class _AppointmentCardState extends State<AppointmentCard> {
             const SizedBox(height: 8),
             Text(a.doctor, style: Theme.of(context).textTheme.titleMedium),
             Text('${appointmentTime(a.start)}–${clockLabel(a.end)}'),
+            if (a.visit != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                visitLabels[a.visit!.status] ?? a.visit!.status,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              Text('Tiếp nhận lúc ${appointmentTime(a.visit!.checkedInAt)}'),
+              if (a.visit!.startedAt != null)
+                Text(
+                  'Bắt đầu khám lúc ${appointmentTime(a.visit!.startedAt!)}',
+                ),
+            ],
             if (a.reason?.isNotEmpty == true)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -131,6 +144,23 @@ class _AppointmentCardState extends State<AppointmentCard> {
             Wrap(
               spacing: 8,
               children: [
+                TextButton(
+                  onPressed: _saving
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ReschedulePage(
+                                repository: widget.repository,
+                                appointmentId: a.id,
+                              ),
+                            ),
+                          );
+                          if (mounted) widget.onChanged();
+                        },
+                  child: const Text('Đề xuất đổi giờ / Lịch sử'),
+                ),
                 if (a.canCancelAt(DateTime.now()))
                   TextButton(
                     onPressed: _saving ? null : _cancel,

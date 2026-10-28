@@ -115,13 +115,16 @@ class Appointment {
       status = text(m['status']),
       doctor = optionalText(m['doctorName']) ?? 'Bác sĩ',
       reason = optionalText(m['statusReason']),
+      visit = m['visit'] == null ? null : VisitInfo.from(objectMap(m['visit'])),
       start = parseClinicTime(text(m['startAt'])),
       end = parseClinicTime(text(m['endAt']));
   final int id;
   final String status, doctor;
   final String? reason;
+  final VisitInfo? visit;
   final DateTime start, end;
   bool canCancelAt(DateTime instant) =>
+      !['WAITING', 'IN_PROGRESS'].contains(visit?.status) &&
       ['PENDING', 'CONFIRMED'].contains(status) &&
       start.isAfter(instant.toUtc());
 }
@@ -174,4 +177,58 @@ class PatientProfile {
   final int? id;
   final String name, email, phone, gender, address;
   final String? birth;
+}
+
+const rescheduleLabels = {
+  'PENDING': 'Chờ phản hồi',
+  'ACCEPTED': 'Đã chấp nhận',
+  'DECLINED': 'Đã từ chối',
+  'WITHDRAWN': 'Đã rút',
+  'EXPIRED': 'Hết hạn',
+  'INVALIDATED': 'Lịch cũ không còn phù hợp',
+};
+
+class RescheduleProposal {
+  RescheduleProposal.from(Map<String, dynamic> data)
+    : id = integer(data['id']),
+      status = text(data['status']),
+      reason = text(data['reason']),
+      start = parseClinicTime(text(data['targetStartAt'])),
+      end = parseClinicTime(text(data['targetEndAt'])),
+      expiresAt = parseClinicTime(text(data['expiresAt'])),
+      proposedBy = integer(data['proposedBy']),
+      respondedAt = data['respondedAt'] == null
+          ? null
+          : parseClinicTime(text(data['respondedAt'])),
+      replacementId = data['replacementAppointmentId'] == null
+          ? null
+          : integer(data['replacementAppointmentId']);
+  final int id, proposedBy;
+  final int? replacementId;
+  final String status, reason;
+  final DateTime start, end, expiresAt;
+  final DateTime? respondedAt;
+  String get effectiveStatus =>
+      status == 'PENDING' && !expiresAt.isAfter(DateTime.now())
+      ? 'EXPIRED'
+      : status;
+}
+
+const visitLabels = {
+  'WAITING': 'Đã có mặt, đang chờ khám',
+  'IN_PROGRESS': 'Đang khám',
+  'COMPLETED': 'Đã khám xong',
+  'CANCELED': 'Đã rút tiếp nhận',
+};
+
+class VisitInfo {
+  VisitInfo.from(Map<String, dynamic> m)
+    : status = text(m['status']),
+      checkedInAt = parseClinicTime(text(m['checkedInAt'])),
+      startedAt = m['startedAt'] == null
+          ? null
+          : parseClinicTime(text(m['startedAt']));
+  final String status;
+  final DateTime checkedInAt;
+  final DateTime? startedAt;
 }
